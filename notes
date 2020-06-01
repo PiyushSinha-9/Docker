@@ -1,0 +1,132 @@
+
+--> basically instead of just passing code the programmer can instead choose to pass the container 
+which consist code and all dependencies related to code to resolve the issue of working in one platform 
+and not on other platform.
+
+
+--> https://labs.play-with-docker.com/				(// Docker Playground)
+
+// to install in mac 		https://docs.docker.com/toolbox/toolbox_install_mac/      go through this link
+// in latest version mac kitematic is not preinstalled and we have to install it from outside
+
+// inside terminal 
+	docker version 
+	docker info
+	docker run hello-world
+	docker images
+
+	docker ps    		// list all working container
+
+// checking docker working or not 
+
+	docker run docker/whalesay cowsay booo
+
+// checking all containers 
+
+	docker ps    		// list all working container
+	docker ps -a 		// list all working or previously working
+
+
+	docker stop <name or ID>
+
+	docker rm <name or ID>   			// to completed remove
+
+	docker images 					// to see the list all images
+
+	docker rmi <image name>			// to delete image but <NOTE -: MAKE SURE NO DEPENDENCY IS CONNECTED TO IT>
+
+	docker pull <image name>		// only pulled image and not run it
+
+
+//	List all containers (only IDs)
+	docker ps -aq
+
+
+//	Stop all running containers
+	docker stop $(docker ps -aq)
+
+
+//	Remove all containers
+	docker rm $(docker ps -aq)
+
+
+//	Remove all images
+	docker rmi $(docker images -q)
+
+
+//	running a container and naming it webapp 
+	docker run --name webapp nginx:1.14-alpine
+
+
+// docker run ubnutu 
+	--> it will open and will stop as it is for specific task 
+	docker run ubnutu sleep 5
+
+	okay a lot to cover if we are working with such container like ubunutu make it sleep for long and run the 
+
+	docker exec distracted_mcclintock cat /etc/hosts 
+	
+
+//// simple web command
+	
+	docker run kodekloud/simple-webapp			//attach 
+
+	docker run -d kodekloud/simple-webapp		//deattch provide a id
+
+	docker attach  <few id values>
+
+
+
+///////////////     docker run         practice 2  https://kodekloud.com/courses/docker-labs/lectures/11253909
+
+
+		docker run redis:4.0			// to run specific version
+
+		// taking user input and printing hello username
+		docker run kodekloud/simple-prompt-docker
+		docker run -i kodekloud/simple-prompt-docker	
+		docker run -it kodekloud/simple-prompt-docker	
+
+		// docker PORT MAPPING
+
+		docker run kodekloud/webapp
+
+		docker run -p 80:5000 kodekloud/simple-webapp
+		docker run -p 8000:5000 kodekloud/simple-webapp
+
+		//  docker run -p 38282:8080 kodekloud/simple-webapp:blue     // :blue is tag
+
+
+/////////////   docker volume mapping
+
+		 docker run mysql
+
+		 docker run -v /opt/datadir:/var/lib/mysql mysql			// all data will be stored in external value
+		 
+
+
+		 //  inspecting a contianer
+
+		 docker inspect  <conatainer_name>				// JSON format
+
+		 docker logs  <name>			//container logs
+
+/////////////////////////////////////////////////////////////////////////////////////////////
+
+////						ENV VARIABLE
+
+	// inspect a container to check env varibles
+
+		docker run -e APP_COLOR=blue simple-webapp-color
+
+/////////////////////////////////////////////////////////////////////////////////////////////
+
+	//	Run a container named blue-app using image kodekloud/simple-webapp and set the environment variable APP_COLOR
+	//	 to blue. Make the application available on port 38282 on the host. The application listens on port 8080.
+
+		 docker run -p 38282:8080 --name blue-app -e APP_COLOR=blue -d kodekloud/simple-webapp
+
+
+		docker run --name mysql-db -e MYSQL_ROOT_PASSWORD=db_pass123 -d mysql
+
+
