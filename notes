@@ -94,6 +94,8 @@ and not on other platform.
 		docker run -p 80:5000 kodekloud/simple-webapp
 		docker run -p 8000:5000 kodekloud/simple-webapp
 
+		//NOTE-:  80 is new port and 5000 is existing port
+
 		//  docker run -p 38282:8080 kodekloud/simple-webapp:blue     // :blue is tag
 
 
@@ -128,5 +130,299 @@ and not on other platform.
 
 
 		docker run --name mysql-db -e MYSQL_ROOT_PASSWORD=db_pass123 -d mysql
+
+/////////////////////////////////////////////////////////////////////////////////////////////
+
+///////////////////										docker images
+
+
+		//Worked in layer achituture
+
+		// to create system locally avaiable on your system
+		docker build Dockerfile -t piyush/my-custom-app   // after -t is tag part
+
+		// to create publicly 
+		docker push piyush/my-custom-app
+
+		// to check history 
+		docker history piyush/my-custom-app
+
+
+
+		// Inspect the Dockerfile in the webapp-color directory.
+
+			vi /root/webapp-color/Dockerfile
+
+			or 
+
+			grep -i FROM /root/webapp-color/Dockerfile
+
+		//  Build a docker image using the Dockerfile and name it webapp-color. No tag to be specified.
+
+			//go to that location where dockerfile is present
+
+			docker build -t webapp-color .		/// here . is represting that the dockerfile is in cur dir. 
+
+		//   What is the base Operating System used by the python:3.6 image?
+
+			docker run python:3.6 cat /etc/*release*
+
+		//  trimming the big size file 
+
+			Find small base image  like python:3.6 smaller version is python:3.8-alpine
+			change that in dockerfile 
+			make a new image and run that
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////
+
+///////////////////										docker CMD vs Entrypoint
+
+		// unlike virtual machine containers are not meant to host operating system
+
+			ubuntu dockerfile contains CMD ["bash"]
+			bash is just for listening for a terminal  as it has nothing to listen thats why it close as it opened
+
+			open way to overcome this is to add a command 
+
+			docker run ubnutu sleep 5
+
+			to make more ligitment create new image using base Ubnutu and write like -:
+
+
+"""										name it as ubuntu-sleeper
+			FROM Ubuntu
+
+			CMD sleep 5  
+			or 
+			CMD ["sleep","5"]  // JSON format
+
+"""
+
+			//but sleep seconds is hard coded we want something better 
+
+			docker run ubuntu-sleeper n     				/// where n is number of seconds user wants to enter
+
+"""										name it as ubuntu-sleeper
+			FROM Ubuntu
+
+			ENTRYPOINT ["sleep"]
+
+"""
+
+			// to confiure a default value use both entrypoint and cmd
+
+
+"""										name it as ubuntu-sleeper
+			FROM Ubuntu
+
+			ENTRYPOINT ["sleep"]
+			CMD ["5"]
+
+"""
+			
+
+			// to overwrite entrypoint 
+
+			docker run --entrypoint sleep2.0 ubuntu-sleeper 10
+
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////
+
+///////////////////										docker networking
+
+
+		// at installation of docker it creates 3 networks 
+
+		--> bridge				// by-default
+		--> none
+		--> host
+
+		to run docker commond in any other network use
+
+		docker run ubuntu --network=none
+		docker run ubuntu --network=host
+
+
+		bridge
+
+		172.17.0.2  
+		in this we use port mapping however using host network port mapping is not required however we now
+		cannot be able to run multiple container on same port using none we cannot excess it .
+
+		docker network ls // to list all networks
+
+		// to create new network 
+
+		docker network create --driver bridge --subnet 182.18.0.0/16 custom-isolated-network
+
+		//	Create a new network named wp-mysql-network using the bridge driver. Allocate subnet 182.18.0.1/24.
+		//  Configure Gateway 182.18.0.1
+
+		docker network create --driver bridge --subnet 182.18.0.1/24 --gateway 182.18.0.1 wp-mysql-network
+
+		// to inspect network setting assigned to an existing container
+
+		docker inspect <id or name>
+		look for network section in it.
+
+		//////////////////////////			embedded DNS
+
+		to connect two container use container name to connect not internal IP address
+
+		DNS server always run on 127.0.0.11
+
+		docker use virtual ethernet pairs to connect two containers together
+
+
+		//  Run a container named alpine-2 using the alpine image and attach it to the none network.
+
+		docker run --name alpine-2 --network=none alpine
+
+
+		// Deploy a mysql database using the mysql:5.6 image and name it mysql-db. Attach it to the newly created network wp-mysql-network
+		// Set the database password to use db_pass123. The environment variable to set is MYSQL_ROOT_PASSWORD
+
+		docker run  -e MYSQL_ROOT_PASSWORD=db_pass123 --name mysql-db --network wp-mysql-network mysql:5.6
+
+		or
+
+		docker run -d -e MYSQL_ROOT_PASSWORD=db_pass123 --name mysql-db --network wp-mysql-network mysql:5.6
+		// deattch 
+
+
+		/*
+		Deploy a web application named webapp, using image kodekloud/simple-webapp-mysql. Expose port to 38080 on the host. The application takes an environment variable DB_Host that has the hostname of the mysql database. Make sure to attach it to the newly created network wp-mysql-network
+		 */
+		
+		docker run --name webapp -p 38080:8080 -e DB_Host=mysql-db -e DB_Password=db_pass123 --network=wp-mysql-network --link mysql-db:mysql-db kodekloud/simple-webapp-mysql
+
+
+
+NOTE -:   TO AGAIN RUN A CONTAINER WHICH YOU ALREADY CREATED USE     -->    docker start <container name>
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////
+
+///////////////////										docker storage
+
+
+		by deafult docker store data on 
+		/var/lib/docker
+		-> volumes
+		-> conainters
+		-> aufs
+		-> image
+
+
+		COPY-ON-WRITE 
+
+		image layers are read only, contanier layers are both read and write, to make changes in image layer
+		without changing DOCKERFILE build docker creates a copy of image layer inside container layer
+
+
+		docker volume create data_volume
+
+		docker run -v data_volume:/var/lib/mysql mysql   // mount it to container  (volume mounting)
+
+		// btw even if data_volume directory not already present it will create it automatically
+
+		docker run -v /data/mysql:/var/lib/mysql mysql   // to store it somewhere else we will provide other loc
+		(bind mounting any location)
+
+		-v is old type 
+
+		docker run --mount type=bind, source=data/mysql, target=/var/lib/mysql mysql
+
+		// docker use storage drivers to maintain these storage
+
+		for example ubuntu uses AUFS
+
+
+		/*
+		
+		Run a mysql container named mysql-db using the mysql image. Set database password to db_pass123
+
+		Note: Remember to run it in the detached mode.
+
+		 */
+
+		 docker run -d --name mysql-db -e MYSQL_ROOT_PASSWORD=db_pass123 mysql
+		
+		 sh get-data.sh
+
+		 /*
+		
+			Run a mysql container again, but this time map a volume to the container so that the data stored by the container is stored at /opt/data on the host.
+			Use the same name : mysql-db and same password: db_pass123 as before. Mysql stores data at /var/lib/mysql inside the container.
+
+		 */
+		
+		docker run -d --name mysql-db -e MYSQL_ROOT_PASSWORD=db_pass123 -v /opt/data:/var/lib/mysql mysql
+
+		// if the data get lost again just re write above command 
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////
+
+///////////////////										docker compose
+
+
+		instead of writing 
+
+		docker run piyush/simple-webapp
+		docker run mongodb
+		..etc
+
+		use 
+
+		docker-compose.yml
+		services:
+			web:
+				image: "piyush/simple-webapp"
+			database:
+				image: "mongodb"
+			... etc
+
+		to run this use 
+
+		docker-compose up    //command run all these command 
+
+		// sample application :  voting application
+
+		docker run -e POSTGRES_PASSWORD=mysecretpassword --name db postgres
+
+		docker run --name wordpress -p 8085:80 --link db:db wordpress
+
+
+		/*	
+		Create a docker-compose.yml file under the path /root/wordpress. Once done, run a docker-compose up.
+		The compose file should have exact specification of the wordpress and db container
+		 */
+		
+		// do not use tabs in between refer docs somethings should be mentioned as array like ports links and all
+
+
+		    version: '2.0'
+			services:
+			   db:
+			       image: "postgres"
+			       environment:
+			          - POSTGRES_PASSWORD=mysecretpassword
+			   wordpress:
+			       image: "wordpress"
+			       links:
+			          - db
+			       ports:
+			          - "8085:80"
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////
+
+///////////////////										docker registry
+
+
+	
 
 
